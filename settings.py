@@ -1,0 +1,1 @@
+POLICY = 'FIFO'   # FIFO - LIFO
