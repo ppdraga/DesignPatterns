@@ -63,10 +63,24 @@ class Nomenclature(Catalog):
 class Document(metaclass=abc.ABCMeta):
     id = None
     date = None
+    nomTabSec = None
+    registerRecords = []
     
     @abc.abstractmethod
     def post(self):
         pass
+
+    def unpost(self):
+        for record in self.registerRecords:
+            NomenclatureAccReg.rows.remove(record)
+        self.registerRecords = []
+        self.posted = False
+
+    def save(self, posting=True):
+        if posting:
+            self.unpost()
+            self.post()
+
     def __str__(self):
         lines = ''
         for line in self.nomTabSec.lines:
@@ -80,6 +94,8 @@ class PurcaseInvoice(Document):
         self.date = datetime.now()
         self.posted = False
         self.nomTabSec = PurchaseInvoiceTabSec()
+        self.registerRecords = []
+
     def post(self):
         for line in self.nomTabSec.lines:
             record = NomenclatureAccReg()
@@ -92,7 +108,8 @@ class PurcaseInvoice(Document):
             record.nomenclature = line.get('nomenclature')
             record.count = line.get('count')
             record.sum = line.get('sum')
-        self.posted = True
+            self.registerRecords.append(record)
+        self.posted = True      
 
 class SalesInvoice(Document):
     def __init__(self, id=None, num=None):
@@ -101,12 +118,17 @@ class SalesInvoice(Document):
         self.date = datetime.now()
         self.posted = False
         self.nomTabSec = SalesInvoiceTabSec()
+        self.registerRecords = []
+
     def post(self):
         line_counter = 0
+        cancel = False
+        recordSet = []
         for line in self.nomTabSec.lines:
             remain = line.get('count')
             if remain:
-                parties = NomenclatureAccReg.get_balance(selection={'nomenclature':line.get('nomenclature')})
+                nomenclature = line.get('nomenclature')
+                parties = NomenclatureAccReg.get_balance(selection={'nomenclature':nomenclature})
                 for part in parties:
                     if part.get('count') < remain:
                         _sum = part.get('sum')
@@ -125,12 +147,20 @@ class SalesInvoice(Document):
                     record.part = part.get('part')
                     record.action = 0 # expense
                     record.lineNum = line_counter
-                    record.nomenclature = line.get('nomenclature')
+                    record.nomenclature = nomenclature
                     record.count = count
                     record.sum = _sum
-
+                    recordSet.append(record)
                     if not remain: break
-        self.posted = True
+            if remain:
+                print(f'Not enough {remain} of {nomenclature}')
+                cancel = True
+        if not cancel:
+            self.registerRecords.extend(recordSet)
+            self.posted = True
+        else:
+            for record in recordSet:
+                NomenclatureAccReg.rows.remove(record)
 
 class AccumulationRegister:
     pass
@@ -161,8 +191,8 @@ class NomenclatureAccReg(AccumulationRegister):
                         part_balance['sum'] += row.sum
                         part_balance['period'] = row.period
                     else:
-                        part_balance['count'] += row.count
-                        part_balance['sum'] += row.sum
+                        part_balance['count'] -= row.count
+                        part_balance['sum'] -= row.sum
             if part_balance['count']: res.append(part_balance)
         reverse = True if POLICY == 'LIFO' else False
         res = sorted(res, key=lambda elem:elem['period']-datetime(1,1,1), reverse=reverse)
@@ -211,5 +241,9 @@ if __name__ == '__main__':
     doc4.nomTabSec.add({'lineNum':2,'nomenclature':pen2,'count':5,'sum':2500})  # FIFO costs $900, LIFO costs $1200
     doc4.post()
 
+    print('NomenclatureAccReg:')
     print(NomenclatureAccReg.rows)
-    #print(NomenclatureAccReg.get_balance(selection={'nomenclature':pen1}))
+    print('pen1 balance:')
+    print(NomenclatureAccReg.get_balance(selection={'nomenclature':pen1}))
+    print('doc4 register records:')
+    print(doc4.registerRecords)
