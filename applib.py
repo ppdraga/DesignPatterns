@@ -47,10 +47,10 @@ class SalesTabSecFactory:
         return SalesInvoiceTabSec()
 
 class Catalog:
-    def __init__(self, id=None, name=None):
+    def __init__(self, id=None, name=None, description=None):
         self.id = id
         self.name = name
-        self.desc = None
+        self.description = description
     
 
 class Nomenclature(Catalog):
@@ -241,9 +241,19 @@ if __name__ == '__main__':
     doc4.nomTabSec.add({'lineNum':2,'nomenclature':pen2,'count':5,'sum':2500})  # FIFO costs $900, LIFO costs $1200
     doc4.post()
 
-    print('NomenclatureAccReg:')
-    print(NomenclatureAccReg.rows)
-    print('pen1 balance:')
-    print(NomenclatureAccReg.get_balance(selection={'nomenclature':pen1}))
-    print('doc4 register records:')
-    print(doc4.registerRecords)
+    # print('NomenclatureAccReg:')
+    # print(NomenclatureAccReg.rows)
+    # print('pen1 balance:')
+    # print(NomenclatureAccReg.get_balance(selection={'nomenclature':pen1}))
+    # print('doc4 register records:')
+    # print(doc4.registerRecords)
+
+    import sqlite3
+    from dbmapper import NomenclatureMapper
+
+    connection = sqlite3.connect('db.sqlite3')
+    nomenclature_mapper = NomenclatureMapper(connection)
+    nomenclature_mapper.insert(pen1)
+    nomenclature_mapper.insert(pen2)
+    pen = nomenclature_mapper.find_by_id(5)
+    print(pen)
