@@ -24,3 +24,21 @@ class NomenclatureMapper:
             self.connection.commit()
         except Exception as e:
             raise DatabaseError(e.args)
+
+    def update(self, nomenclature):
+        sql_statement = f"UPDATE NOMENCLATURE SET NAME='{nomenclature.name}', \
+            DESCRIPTION='{nomenclature.description}' \
+            WHERE ID='{nomenclature.id}'"
+        self.cursor.execute(sql_statement)
+        try:
+            self.connection.commit()
+        except Exception as e:
+            raise DatabaseError(e.args)
+
+    def delete(self, nomenclature):
+        sql_statement = f"DELETE FROM NOMENCLATURE WHERE ID='{nomenclature.id}'"
+        self.cursor.execute(sql_statement)
+        try:
+            self.connection.commit()
+        except Exception as e:
+            raise DatabaseError(e.args)

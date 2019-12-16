@@ -256,4 +256,8 @@ if __name__ == '__main__':
     nomenclature_mapper.insert(pen1)
     nomenclature_mapper.insert(pen2)
     pen = nomenclature_mapper.find_by_id(5)
+    pen.description = 'test'
+    nomenclature_mapper.update(pen)
+    pen = nomenclature_mapper.find_by_id(7)
+    nomenclature_mapper.delete(pen)
     print(pen)
