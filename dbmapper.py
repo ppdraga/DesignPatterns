@@ -42,3 +42,13 @@ class NomenclatureMapper:
             self.connection.commit()
         except Exception as e:
             raise DatabaseError(e.args)
+
+    def fetchall(self):
+        sql_statement = f"SELECT ID, NAME, DESCRIPTION FROM NOMENCLATURE"
+        self.cursor.execute(sql_statement)
+        entries = self.cursor.fetchall()
+        result = []
+        if entries:
+            for entry in entries:
+                result.append(Nomenclature(*entry))
+        return result
